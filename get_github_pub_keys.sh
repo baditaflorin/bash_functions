@@ -1,3 +1,5 @@
+#!/bin/bash
+
 USERNAME=baditaflorin
 
 mkdir -p ~/.ssh
@@ -7,10 +9,11 @@ if ! [[ -f ~/.ssh/authorized_keys ]]; then
   touch ~/.ssh/authorized_keys
 fi
 
-keys=`curl https://api.github.com/users/$USERNAME/keys | grep -o -E "ssh-\w+\s+[^\"]+"`
+keys=$(curl -s https://api.github.com/users/$USERNAME/keys | jq -r '.[].key')
 
 for key in $keys; do
   echo $key
-  grep -q "$key" ~/.ssh/authorized_keys || echo "$key" &gt;&gt; ~/.ssh/authorized_keys
+  grep -q "$key" ~/.ssh/authorized_keys || echo "$key" >> ~/.ssh/authorized_keys
 done
-#https://www.codementor.io/@slavko/batch-add-github-keys-as-authorized-keys-du107usio
+
+#ORIGINAL Https://www.codementor.io/@slavko/batch-add-github-keys-as-authorized-keys-du107usio
