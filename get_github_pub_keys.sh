@@ -13,3 +13,4 @@ for key in $keys; do
   echo $key
   grep -q "$key" ~/.ssh/authorized_keys || echo "$key" &gt;&gt; ~/.ssh/authorized_keys
 done
+#https://www.codementor.io/@slavko/batch-add-github-keys-as-authorized-keys-du107usio
