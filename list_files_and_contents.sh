@@ -12,9 +12,12 @@ list_files_and_contents() {
   fi
 
   find "$directory" -type f | while IFS= read -r file; do
-    echo "Filename: $file"
-    echo "Contents:"
-    cat "$file"
-    echo "----------------------"
+    file_type=$(file -b --mime-type "$file")
+    if [[ $file_type == text/* ]]; then
+      echo "Filename: $file"
+      echo "Contents:"
+      cat "$file"
+      echo "----------------------"
+    fi
   done
 }
