@@ -1,11 +1,7 @@
-list_files_and_contents() {
-  # Initialize variables
-  local directory=""
-  local ignore_dirs=""
-  local ignore_exts=""
-  local include_exts=""
+#!/bin/sh
 
-  # Parse command-line arguments
+# Function to parse command-line arguments
+parse_arguments() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
       -d|--directory)
@@ -31,8 +27,10 @@ list_files_and_contents() {
         ;;
     esac
   done
+}
 
-  # Check if directory is specified and exists
+# Function to validate the directory argument
+validate_directory() {
   if [ -z "$directory" ]; then
     echo "Directory not specified."
     echo "Usage: list_files_and_contents -d <directory> [--ignore-dir <dir,dir,...>] [--ignore-ext <ext,ext,...>] [--include-ext <ext,ext,...>]"
@@ -43,35 +41,70 @@ list_files_and_contents() {
     echo "The specified directory does not exist."
     return 1
   fi
+}
 
-  # Construct the find command
+# Function to construct the find command based on ignore directories
+construct_find_command() {
   find_command="find \"$directory\" -type f"
-  IFS=',' read -r _ignore_dirs <<< "$ignore_dirs"
-  for dir in $_ignore_dirs; do
+  IFS=',' set -- $ignore_dirs
+  for dir; do
     find_command="$find_command ! -path \"$directory/$dir/*\""
   done
+  echo "$find_command"
+}
 
-  # Execute the find command and process files
-  eval "$find_command" | while IFS= read -r file; do
-    # Check file extension
-    ext="${file##*.}"
-    case ",$ignore_exts," in
-      *,"$ext",*) continue ;;
+# Function to check if a file should be included based on its extension
+should_include_file() {
+  file="$1"
+  ext="${file##*.}"
+
+  case ",$ignore_exts," in
+    *",$ext,"*) return 1 ;;
+  esac
+
+  if [ -n "$include_exts" ]; then
+    case ",$include_exts," in
+      *",$ext,"*) ;;
+      *) return 1 ;;
     esac
+  fi
 
-    if [ -n "$include_exts" ]; then
-      case ",$include_exts," in
-        *,"$ext",*) ;;
-        *) continue ;;
-      esac
-    fi
+  return 0
+}
 
-    file_type=$(file -b --mime-type "$file")
-    if [ "${file_type%/*}" = "text" ]; then
+# Function to display the contents of a text file
+display_file_contents() {
+  file="$1"
+  file_type=$(file -b --mime-type "$file")
+
+  case "$file_type" in
+    text/*)
       echo "Filename: $file"
       echo "Contents:"
       cat "$file"
       echo "------"
+      ;;
+  esac
+}
+
+# Main function to list files and their contents
+list_files_and_contents() {
+  directory=""
+  ignore_dirs=""
+  ignore_exts=""
+  include_exts=""
+
+  parse_arguments "$@"
+  validate_directory || exit 1
+
+  find_command=$(construct_find_command)
+
+  eval "$find_command" | while IFS= read -r file; do
+    if should_include_file "$file"; then
+      display_file_contents "$file"
     fi
   done
 }
+
+# Execute the main function
+#list_files_and_contents "$@"
